@@ -49,7 +49,7 @@ class MainFunction(MovingCameraScene):
         
         x = ValueTracker(1)
         
-        d1 = always_redraw(lambda: Dot(radius=0.125).set_color(BLUE_C).move_to(ax.c2p(x.get_value(), 1/x.get_value())))
+        d1 = always_redraw(lambda: Dot(radius=0.15).set_color(BLUE_C).move_to(ax.c2p(x.get_value(), 1/x.get_value())))
         chart_vg = VGroup(ax, vg1, reserves, unilogo, d1)
 
         self.play(Write(ax), Write(xreserves), Write(yreserves))
@@ -59,8 +59,7 @@ class MainFunction(MovingCameraScene):
 
         self.play(self.camera.frame.animate.scale(0.5).move_to(ax.c2p(1, 1.5)))
         self.play(Write(d1))
-        self.play(Flash(d1, color=BLUE_C, flash_radius=0.125+SMALL_BUFF))
-        self.wait()
+        self.play(Flash(d1, color=BLUE_C, line_length=0.1, flash_radius=0.1+SMALL_BUFF))
 
         self.play(x.animate.set_value(0.35), rate_func=rate_functions.ease_in_out_cubic, run_time=1.25)
         self.play(x.animate.set_value(3.5), rate_func=rate_functions.ease_in_out_cubic, run_time=1.25)
@@ -146,7 +145,7 @@ class MainFunction(MovingCameraScene):
         labels_0 = VGroup(x0_label, y0_label)
 
         self.remove(d1)
-        d1 = Dot(radius=0.125).set_color(BLUE_C).add_updater(lambda m: m.move_to(ax.c2p(x.get_value(), 1/x.get_value())))
+        d1 = Dot(radius=0.15).set_color(BLUE_C).add_updater(lambda m: m.move_to(ax.c2p(x.get_value(), 1/x.get_value())))
         self.add(d1)
 
         self.play(Write(xline), Write(yline), Write(x_label), Write(y_label))
@@ -165,10 +164,11 @@ class MainFunction(MovingCameraScene):
             d1.animate.set_color(ORANGE),
             FadeIn(x0_label),
             FadeIn(y0_label),
+            run_time=1.5,
             rate_func=rate_functions.ease_in_out_cubic
         )
 
-        dx_buy_dy_12 = MathTex("dy^{+}","=\\frac{y_0\cdot dx^{-}(1-\phi)}{x_0+dx^{-}(1-\phi)}").scale(0.75).move_to(dx_buy_dy_11)
+        dx_buy_dy_12 = MathTex("dy^{+}","=\\frac{y_0\cdot dx^{-}(1-\phi)}{x_0+dx^{-}(1-\phi)}").scale(0.75).move_to(dx_buy_dy_11).shift(LEFT*0.2)
         sr_12 = SurroundingRectangle(dx_buy_dy_12, color=UNISWAP_PINK, buff=0.15)
         
 
@@ -194,16 +194,17 @@ class MainFunction(MovingCameraScene):
         brace_dx = BraceBetweenPoints(
             ax.c2p(x.get_value(),1/x.get_value()),
             ax.c2p(1,1/x.get_value()), 
-            direction=UP)
+            direction=UP
+        )
         
         brace_dy = BraceBetweenPoints(
             ax.c2p(1,1),
             ax.c2p(1, 1/x.get_value()), 
-            direction=RIGHT)
+            direction=RIGHT
+        )
 
-        # self.play(Write(dy_line), Write(dx_line))
-        self.play(Write(brace_dx), Write(brace_dy))
-        self.play(Write(dx_text), Write(dy_text))
+        self.play(Write(dy_line), Write(dx_line))
+        self.play(Write(brace_dx), Write(brace_dy), Write(dx_text), Write(dy_text))
 
         self.play(FocusOn(dx_buy_dy_12[0]))
         self.play(FocusOn(dy_text))
