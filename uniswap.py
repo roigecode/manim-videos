@@ -209,4 +209,29 @@ class MainFunction(MovingCameraScene):
         self.play(FocusOn(dx_buy_dy_12[0]))
         self.play(FocusOn(dy_text))
 
+        allGroup = VGroup(
+            chart_vg, 
+            dx_buy_dy_12, 
+            sr_12, 
+            sr_10,
+            xline,
+            yline,
+            xline0,
+            yline0,
+            dy_line, 
+            dx_line,
+            brace_dx, 
+            brace_dy, 
+            dx_text, 
+            dy_text,
+            x1_label,
+            y1_label,
+            x0_label,
+            y0_label,
+            d1_border,
+            d1,
+        )
+
+        self.play(Unwrite(allGroup))
+
         self.wait(2)
