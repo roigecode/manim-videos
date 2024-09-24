@@ -410,11 +410,7 @@ class ValueImpermanentLoss(MovingCameraScene):
         # +----------+
         # | LP VALUE |
         # +----------+
-        lp_value_0 = MathTex("V_{LP}(P) := ", "xP+y", color=UNISWAP_PINK).scale(0.75).move_to(ORIGIN + UP*3)
-
-        lp_value_1 = MathTex("V_{LP}(P) := ", "xP+y", color=UNISWAP_PINK).scale(0.75)
-        lp_value_1.move_to(ORIGIN + UP*3)
-
+        lp_value_1 = MathTex("V_{LP}(P) := ", "xP+y", color=UNISWAP_PINK).scale(0.75).move_to(ORIGIN + UP*3)
         lp_value_2 = MathTex("= 2\\cdot y").scale(0.75)
         lp_value_3 = MathTex("= 2\\cdot \\frac{k}{x}").scale(0.75)
         lp_value_4 = MathTex("= 2\\cdot \\frac{L^2}{x}").scale(0.75)
@@ -427,13 +423,13 @@ class ValueImpermanentLoss(MovingCameraScene):
             lp_value_4,
             lp_value_5,
             lp_value_6
-        ).arrange(DOWN, aligned_edge=LEFT).move_to(lp_value_1.center()).shift(RIGHT*0.9)
+        ).arrange(DOWN, aligned_edge=LEFT).move_to(lp_value_1).shift(RIGHT*0.9)
        
         lp_value_7 = MathTex("= 2\\cdot \\frac{L^2\\cdot P}{L\\cdot \\sqrt{P}}").scale(0.75)
         lp_value_8 = MathTex("= 2L\\sqrt{P}").move_to(lp_value_1).scale(0.75)
         
-        self.play(TransformFromCopy(equation, lp_value_0))
-        self.play(TransformFromCopy(lp_value_0, lp_value_2))
+        self.play(TransformFromCopy(equation, lp_value_1))
+        self.play(TransformFromCopy(lp_value_1, lp_value_2))
         self.play(TransformFromCopy(lp_value_2, lp_value_3))
         self.play(TransformFromCopy(lp_value_3, lp_value_4))
         self.play(TransformFromCopy(lp_value_4, lp_value_5))
@@ -452,32 +448,58 @@ class ValueImpermanentLoss(MovingCameraScene):
         self.wait()
 
         lp_value_final = MathTex("V_{LP}(P) := ","2L\\sqrt{P}").move_to(ORIGIN + UP*3).scale(0.75).set_color(UNISWAP_PINK)
-        self.play(Transform(lp_value_8, lp_value_0[1]), FadeOut(lp_value_7), FadeOut(lp_value_6))
+        self.play(Transform(lp_value_8, lp_value_final), FadeOut(lp_value_1), FadeOut(lp_value_7), FadeOut(lp_value_6))
         self.play(Circumscribe(lp_value_final, color=UNISWAP_PINK))
         self.wait()
 
         # +--------------+
         # | PRICE CHANGE |
         # +--------------+
-        price_change_0 = MathTex("\\alpha = \\frac{P_T}{P_0}", color=UNISWAP_PINK).move_to(ORIGIN+UP*2+LEFT).scale(0.75)
+        price_change_0 = MathTex("\\alpha := \\frac{P_T}{P_0}", color=UNISWAP_PINK).move_to(ORIGIN+UP*2+LEFT*0.75).scale(0.75)
         price_change_1 = MathTex("\\sqrt{\\frac{P_T}{P_0}} = \\sqrt{\\alpha}").move_to(price_change_0).scale(0.75)
         price_change_2 = MathTex("2L\\sqrt{P_T} = 2L\\sqrt{P_0}\\sqrt{\\alpha}").move_to(price_change_0).scale(0.75)
         price_change_3 = MathTex("V_{LP}(P_T) = V_{LP}(P_0)\\sqrt{\\alpha}").move_to(price_change_0).scale(0.75)
         price_change_4 = MathTex("V_T = V_0\\sqrt{\\alpha}").move_to(price_change_0).scale(0.75).shift(DOWN*2)
 
-        price_changes = VGroup(price_change_1, price_change_2, price_change_3, price_change_4).arrange(DOWN, aligned_edge=LEFT).move_to(price_change_0).shift(RIGHT + DOWN*2)
+        price_changes = VGroup(
+            price_change_1, 
+            price_change_2, 
+            price_change_3, 
+            price_change_4
+        ).arrange(DOWN, aligned_edge=LEFT).move_to(price_change_0).shift(RIGHT*1.2 + DOWN*2)
 
         self.play(Write(price_change_0))
         self.play(TransformFromCopy(price_change_0, price_change_1))
         self.play(TransformFromCopy(price_change_1, price_change_2))
         self.play(TransformFromCopy(price_change_2, price_change_3))
         self.play(TransformFromCopy(price_change_3, price_change_4))
-        self.play(price_change_4.animate.move_to(price_change_0), FadeOut(price_change_0), FadeOut(price_change_1), FadeOut(price_change_2), FadeOut(price_change_3))
+        self.wait()
+
+        self.play(
+            price_change_4.animate.move_to(price_change_0).shift(RIGHT*0.3), 
+            price_change_0.animate.shift(DOWN*2.9+LEFT*2.5).scale(0.75), 
+            FadeOut(price_change_1), FadeOut(price_change_2), 
+            FadeOut(price_change_3)
+        )
+
         self.play(Circumscribe(price_change_4, color=UNISWAP_PINK), price_change_4.animate.set_color(UNISWAP_PINK))
 
         # +------------+
         # | VALUE HODL |
         # +------------+
+        value_hodl_0 = MathTex("V_{HODL} = \\frac{V_0 + V_0 \\cdot \\alpha}{P} = L\\sqrt{P}(1+\\alpha)", color=UNISWAP_PINK).scale(0.75).move_to(lp_value_final).shift(DOWN*2+RIGHT*1.6)
+        self.play(Write(value_hodl_0))
+        self.wait()
+
+        self.remove(lp_value_1, lp_value_8)
+        self.play(
+            lp_value_final.animate.move_to(case_0).shift(RIGHT*0.2).scale(0.75),
+            FadeOut(case_0),
+            price_change_4.animate.move_to(case_1).shift(RIGHT*0.1).scale(0.75),
+            FadeOut(case_1),
+            value_hodl_0.animate.move_to(case_2).shift(RIGHT*1.75).scale(0.75),
+            FadeOut(case_2),
+        )
 
         # +------------------+
         # | IMPERMANENT LOSS |
