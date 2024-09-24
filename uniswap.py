@@ -6,7 +6,7 @@ UNISWAP_BLUE = ManimColor('#007bfe')
 UNISWAP_ORANGE = ManimColor('#fe8300')
 BG_COLOR = ManimColor('#0F0E17')
 
-class MainFunction(MovingCameraScene):
+class PriceChange(MovingCameraScene):
     def construct(self):
         self.camera.background_color = BG_COLOR
         self.camera.frame.save_state()
@@ -209,6 +209,8 @@ class MainFunction(MovingCameraScene):
         self.play(FocusOn(dx_buy_dy_12[0]))
         self.play(FocusOn(dy_text))
 
+        self.wait(3)
+
         allGroup = VGroup(
             chart_vg, 
             dx_buy_dy_12, 
@@ -233,5 +235,252 @@ class MainFunction(MovingCameraScene):
         )
 
         self.play(Unwrite(allGroup))
+
+        self.wait(2)
+
+class ValueImpermanentLoss(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BG_COLOR
+        self.camera.frame.save_state()
+
+        unilogo = SVGMobject("uni-logo.svg").scale(1.75)
+
+        self.wait()
+        self.play(Write(unilogo))
+        self.wait()
+
+        plotlim = 5
+        ax = Axes(
+            x_range=(0, plotlim, 1),
+            y_range=(0, plotlim, 1),
+            x_length=plotlim,
+            y_length=plotlim,
+            tips=False,
+            axis_config={"include_numbers": False},
+            x_axis_config={"include_ticks" : False},
+            y_axis_config={"include_ticks" : False},
+        )
+        xreserves = Tex("X reserves", color=WHITE).move_to(ax.c2p(plotlim/2,0)).shift(DOWN*0.5)
+        yreserves = Tex("Y reserves", color=WHITE).rotate(PI/2).move_to(ax.c2p(0,plotlim/2)).shift(LEFT*0.5)
+
+        reserves = VGroup(xreserves, yreserves)
+
+        curve = ax.plot(
+            lambda x: 1/x,
+            x_range=[0.2, plotlim],
+            use_smoothing=True,
+            color=UNISWAP_PINK
+        )
+
+        equation = MathTex("x","\\cdot","y","=", "k", color=UNISWAP_PINK).move_to(ax.c2p(plotlim*0.65, plotlim*0.6))
+
+        vg1 = VGroup(curve, equation)
+        
+        x = ValueTracker(1)
+        
+        d1 = always_redraw(lambda: Dot(radius=0.15).set_color(BLUE_C).move_to(ax.c2p(x.get_value(), 1/x.get_value())))
+
+        self.play(Write(ax), Write(xreserves), Write(yreserves))
+        self.play(Write(curve), Unwrite(unilogo), run_time=1.25)
+        self.play(Write(equation))
+        self.wait()
+
+        self.play(self.camera.frame.animate.scale(0.75).move_to(ax.c2p(1, 2)), Unwrite(xreserves), Unwrite(yreserves))
+        self.play(Write(d1))
+        d1_border = Dot(stroke_width=4, fill_opacity=0, radius=0.15).set_color(BLUE_C).move_to(ax.c2p(1, 1))
+        d1.z_index = 1
+
+        self.play(Flash(d1, color=BLUE_C, line_length=0.1, flash_radius=0.1+SMALL_BUFF))
+        
+        # +-----------------+
+        # | PRICE ANIMATION |
+        # +-----------------+  
+        xline = DashedLine(ax.c2p(x.get_value(), 0), ax.c2p(x.get_value(),1/x.get_value()), color=BLUE_C).add_updater(lambda m: m.put_start_and_end_on(ax.c2p(x.get_value(), 0), ax.c2p(x.get_value(),1/x.get_value())))
+        yline = DashedLine(ax.c2p(0,1/x.get_value()), ax.c2p(x.get_value(),1/x.get_value()), color=BLUE_C).add_updater(lambda m: m.put_start_and_end_on(ax.c2p(0,1/x.get_value()), ax.c2p(x.get_value(),1/x.get_value())))
+
+        xline0 = DashedLine(ax.c2p(x.get_value(), 0), ax.c2p(x.get_value(),1/x.get_value()), color=BLUE_C)
+        yline0 = DashedLine(ax.c2p(0,1/x.get_value()), ax.c2p(x.get_value(),1/x.get_value()), color=BLUE_C)
+
+        x_label = MathTex("x", color=BLUE_C).add_updater(lambda m: m.next_to(ax.c2p(x.get_value(), 0),DOWN))
+        y_label = MathTex("y", color=BLUE_C).add_updater(lambda m: m.next_to(ax.c2p(0, 1/x.get_value()),LEFT))
+       
+        x0_label = MathTex("x_0", color=BLUE_C).move_to(ax.c2p(x.get_value(), 0)).shift(DOWN*0.35)
+        y0_label = MathTex("y_0", color=BLUE_C).move_to(ax.c2p(0, 1/x.get_value())).shift(LEFT*0.35)
+
+        new_d1 = Dot(radius=0.15).set_color(BLUE_C).add_updater(lambda m: m.move_to(ax.c2p(x.get_value(), 1/x.get_value())))
+        new_d1.z_index = 1
+
+        self.add(new_d1)
+        self.remove(d1)
+
+        self.play(Write(d1_border),Write(xline), Write(yline), Write(x_label), Write(y_label))
+        self.remove(d1)
+
+        self.wait()
+
+        self.add(xline0)
+        self.add(yline0)
+
+        self.play(
+            x.animate.set_value(0.3).set_color(ORANGE),
+            x_label.animate.set_color(ORANGE),
+            y_label.animate.set_color(ORANGE),
+            xline.animate.set_color(ORANGE),
+            yline.animate.set_color(ORANGE),
+            new_d1.animate.set_color(ORANGE),
+            FadeIn(x0_label),
+            FadeIn(y0_label),
+            run_time=1.5,
+            rate_func=rate_functions.ease_in_out_cubic
+        )
+
+        x1_label = MathTex("x_1", color=ORANGE).move_to(ax.c2p(x.get_value(), 0)).shift(DOWN*0.35)
+        y1_label = MathTex("y_1", color=ORANGE).move_to(ax.c2p(0, 1/x.get_value())).shift(LEFT*0.35)
+
+        self.play(
+            TransformMatchingTex(x_label, x1_label),
+            TransformMatchingTex(y_label, y1_label),
+        )
+
+        dy_line = Line(ax.c2p(1,1), ax.c2p(1, 1/x.get_value()))
+        dy_line.z_index = 0
+
+        dx_line = Line(ax.c2p(x.get_value(), 1/x.get_value()), ax.c2p(1, 1/x.get_value()))
+        dx_line.z_index = 0
+
+        brace_dx = Brace(
+            dx_line,
+            direction=UP
+        )
+
+        brace_dy = Brace(
+            dy_line,
+            direction=RIGHT
+        )
+
+        dx_text = MathTex("dx^{-}").scale(0.75).move_to(brace_dx).shift(UP*0.5+RIGHT*0.15)
+        dy_text = MathTex("dy^{+}").scale(0.75).move_to(brace_dy).shift(RIGHT*0.5)
+
+        self.play(Write(dy_line), Write(dx_line), Write(brace_dx), Write(brace_dy), Write(dx_text), Write(dy_text))
+
+        self.wait(2)
+
+        new_chart_vg = VGroup(ax, vg1, reserves, unilogo)
+        self.play(
+            Unwrite(new_d1), 
+            Unwrite(x0_label), 
+            Unwrite(y0_label), 
+            FadeOut(xline), 
+            Unwrite(yline), 
+            Unwrite(xline0), 
+            Unwrite(yline0), 
+            Unwrite(d1_border), 
+            Unwrite(x1_label), 
+            Unwrite(y1_label),
+            Unwrite(dy_line), Unwrite(dx_line), Unwrite(brace_dx), Unwrite(brace_dy), Unwrite(dx_text), Unwrite(dy_text)
+        )
+        self.wait()
+
+        self.play(Restore(self.camera.frame), new_chart_vg.animate.move_to(ORIGIN).shift(LEFT*3))
+        
+        # +-------+
+        # | CASES |
+        # +-------+
+        equation2 = MathTex("x","\\cdot","y","=", "L^2", color=UNISWAP_PINK).move_to(equation.get_center())
+        self.play(Transform(equation, equation2))
+
+        case_p = MathTex("P = \\frac{y}{x}", color=UNISWAP_PINK).scale(0.75)
+        case_0 = MathTex("x=\\frac{y}{P} = \\frac{L}{\\sqrt{P}}").scale(0.75)
+        case_1 = MathTex("y=L\\sqrt{P}").scale(0.75)
+        case_2 = MathTex("\\frac{y^2}{P} = L^2").scale(0.75)
+        cases = VGroup(case_p, case_0, case_1, case_2).arrange(DOWN, aligned_edge=LEFT)
+        cases_brace = Brace(cases, direction=LEFT)
+
+        cases_braced = VGroup(cases, cases_brace).move_to(ORIGIN).shift(RIGHT*3+UP)
+
+        self.play(Write(case_p))
+        self.play(TransformFromCopy(case_p, case_0))
+        self.play(TransformFromCopy(case_0, case_1))
+        self.play(TransformFromCopy(case_1, case_2))
+        self.play(Write(cases_brace))
+        self.wait()
+
+        self.play(new_chart_vg.animate.shift(UP*1.5+LEFT*1.5).scale(0.75), cases_braced.animate.shift(DOWN*3+LEFT*8.25).scale(0.75))
+
+        # +----------+
+        # | LP VALUE |
+        # +----------+
+        lp_value_0 = MathTex("V_{LP}(P) := ", "xP+y", color=UNISWAP_PINK).scale(0.75).move_to(ORIGIN + UP*3)
+
+        lp_value_1 = MathTex("V_{LP}(P) := ", "xP+y", color=UNISWAP_PINK).scale(0.75)
+        lp_value_1.move_to(ORIGIN + UP*3)
+
+        lp_value_2 = MathTex("= 2\\cdot y").scale(0.75)
+        lp_value_3 = MathTex("= 2\\cdot \\frac{k}{x}").scale(0.75)
+        lp_value_4 = MathTex("= 2\\cdot \\frac{L^2}{x}").scale(0.75)
+        lp_value_5 = MathTex("= 2\\cdot \\frac{L^2}{\\frac{y}{P}}").scale(0.75)
+        lp_value_6 = MathTex("= 2\\cdot \\frac{L^2\\cdot P}{y}").scale(0.75)
+
+        lp_values = VGroup(
+            lp_value_2,
+            lp_value_3,
+            lp_value_4,
+            lp_value_5,
+            lp_value_6
+        ).arrange(DOWN, aligned_edge=LEFT).move_to(lp_value_1.center()).shift(RIGHT*0.9)
+       
+        lp_value_7 = MathTex("= 2\\cdot \\frac{L^2\\cdot P}{L\\cdot \\sqrt{P}}").scale(0.75)
+        lp_value_8 = MathTex("= 2L\\sqrt{P}").move_to(lp_value_1).scale(0.75)
+        
+        self.play(TransformFromCopy(equation, lp_value_0))
+        self.play(TransformFromCopy(lp_value_0, lp_value_2))
+        self.play(TransformFromCopy(lp_value_2, lp_value_3))
+        self.play(TransformFromCopy(lp_value_3, lp_value_4))
+        self.play(TransformFromCopy(lp_value_4, lp_value_5))
+        self.play(TransformFromCopy(lp_value_5, lp_value_6))
+        self.wait()
+        
+        self.play(lp_value_6.animate.move_to(lp_value_2).shift(DOWN*0.5+RIGHT*0.5), FadeOut(lp_value_2), FadeOut(lp_value_3), FadeOut(lp_value_4), FadeOut(lp_value_5))
+
+        lp_values_2 = VGroup(
+            lp_value_7,
+            lp_value_8
+        ).arrange(DOWN, aligned_edge=LEFT).move_to(lp_value_6).shift(DOWN*1.5)
+
+        self.play(TransformFromCopy(lp_value_6, lp_value_7))
+        self.play(TransformFromCopy(lp_value_7, lp_value_8))
+        self.wait()
+
+        lp_value_final = MathTex("V_{LP}(P) := ","2L\\sqrt{P}").move_to(ORIGIN + UP*3).scale(0.75).set_color(UNISWAP_PINK)
+        self.play(Transform(lp_value_8, lp_value_0[1]), FadeOut(lp_value_7), FadeOut(lp_value_6))
+        self.play(Circumscribe(lp_value_final, color=UNISWAP_PINK))
+        self.wait()
+
+        # +--------------+
+        # | PRICE CHANGE |
+        # +--------------+
+        price_change_0 = MathTex("\\alpha = \\frac{P_T}{P_0}", color=UNISWAP_PINK).move_to(ORIGIN+UP*2+LEFT).scale(0.75)
+        price_change_1 = MathTex("\\sqrt{\\frac{P_T}{P_0}} = \\sqrt{\\alpha}").move_to(price_change_0).scale(0.75)
+        price_change_2 = MathTex("2L\\sqrt{P_T} = 2L\\sqrt{P_0}\\sqrt{\\alpha}").move_to(price_change_0).scale(0.75)
+        price_change_3 = MathTex("V_{LP}(P_T) = V_{LP}(P_0)\\sqrt{\\alpha}").move_to(price_change_0).scale(0.75)
+        price_change_4 = MathTex("V_T = V_0\\sqrt{\\alpha}").move_to(price_change_0).scale(0.75).shift(DOWN*2)
+
+        price_changes = VGroup(price_change_1, price_change_2, price_change_3, price_change_4).arrange(DOWN, aligned_edge=LEFT).move_to(price_change_0).shift(RIGHT + DOWN*2)
+
+        self.play(Write(price_change_0))
+        self.play(TransformFromCopy(price_change_0, price_change_1))
+        self.play(TransformFromCopy(price_change_1, price_change_2))
+        self.play(TransformFromCopy(price_change_2, price_change_3))
+        self.play(TransformFromCopy(price_change_3, price_change_4))
+        self.play(price_change_4.animate.move_to(price_change_0), FadeOut(price_change_0), FadeOut(price_change_1), FadeOut(price_change_2), FadeOut(price_change_3))
+        self.play(Circumscribe(price_change_4, color=UNISWAP_PINK), price_change_4.animate.set_color(UNISWAP_PINK))
+
+        # +------------+
+        # | VALUE HODL |
+        # +------------+
+
+        # +------------------+
+        # | IMPERMANENT LOSS |
+        # +------------------+
 
         self.wait(2)
