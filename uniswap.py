@@ -1,4 +1,6 @@
 from manim import *
+import numpy as np
+from math import e
 
 UNISWAP_PINK = ManimColor('#FE0079')
 UNISWAP_GREEN = ManimColor('#00fe83')
@@ -260,10 +262,6 @@ class ValueImpermanentLoss(MovingCameraScene):
             x_axis_config={"include_ticks" : False},
             y_axis_config={"include_ticks" : False},
         )
-        xreserves = Tex("X reserves", color=WHITE).move_to(ax.c2p(plotlim/2,0)).shift(DOWN*0.5)
-        yreserves = Tex("Y reserves", color=WHITE).rotate(PI/2).move_to(ax.c2p(0,plotlim/2)).shift(LEFT*0.5)
-
-        reserves = VGroup(xreserves, yreserves)
 
         curve = ax.plot(
             lambda x: 1/x,
@@ -272,6 +270,9 @@ class ValueImpermanentLoss(MovingCameraScene):
             color=UNISWAP_PINK
         )
 
+        xreserves = Tex("X reserves", color=WHITE).move_to(ax.c2p(plotlim/2,0)).shift(DOWN*0.5)
+        yreserves = Tex("Y reserves", color=WHITE).rotate(PI/2).move_to(ax.c2p(0,plotlim/2)).shift(LEFT*0.5)
+        reserves = VGroup(xreserves, yreserves)
         equation = MathTex("x","\\cdot","y","=", "k", color=UNISWAP_PINK).move_to(ax.c2p(plotlim*0.65, plotlim*0.6))
 
         vg1 = VGroup(curve, equation)
@@ -423,7 +424,7 @@ class ValueImpermanentLoss(MovingCameraScene):
             lp_value_4,
             lp_value_5,
             lp_value_6
-        ).arrange(DOWN, aligned_edge=LEFT).move_to(lp_value_1).shift(RIGHT*0.9)
+        ).arrange(DOWN, aligned_edge=LEFT).move_to(lp_value_1).shift(RIGHT*0.9 + DOWN*3)
        
         lp_value_7 = MathTex("= 2\\cdot \\frac{L^2\\cdot P}{L\\cdot \\sqrt{P}}").scale(0.75)
         lp_value_8 = MathTex("= 2L\\sqrt{P}").move_to(lp_value_1).scale(0.75)
@@ -493,16 +494,119 @@ class ValueImpermanentLoss(MovingCameraScene):
 
         self.remove(lp_value_1, lp_value_8)
         self.play(
-            lp_value_final.animate.move_to(case_0).shift(RIGHT*0.2).scale(0.75),
+            lp_value_final.animate.move_to(case_0).shift(RIGHT*0.225).scale(0.75),
             FadeOut(case_0),
-            price_change_4.animate.move_to(case_1).shift(RIGHT*0.1).scale(0.75),
+            price_change_4.animate.move_to(case_1).shift(RIGHT*0.125).scale(0.75),
             FadeOut(case_1),
-            value_hodl_0.animate.move_to(case_2).shift(RIGHT*1.75).scale(0.75),
+            value_hodl_0.animate.move_to(case_2).shift(RIGHT*1.775).scale(0.75),
             FadeOut(case_2),
         )
+
+        # +-------------+
+        # | LP VS. HODL |
+        # +-------------+
+        ax2 = Axes(
+            x_range=(0, plotlim/2, 0.1),
+            y_range=(0, plotlim/2-0.5, 0.1),
+            x_length=plotlim*1.5,
+            y_length=plotlim*0.5*1.5,
+            tips=False,
+            axis_config={"include_numbers": False},
+            x_axis_config={"include_ticks" : False},
+            y_axis_config={"include_ticks" : False},
+        ).shift(RIGHT*3+UP*1.7)
+
+        alpha_label = MathTex("\\alpha").scale(0.75).move_to(ax2.c2p(plotlim/4, 0)).shift(DOWN*0.25)
+        value_label = Tex("value").scale(0.75).move_to(ax2.c2p(0, plotlim/4)).shift(LEFT*0.25).rotate(PI/2) 
+
+        value_lp_curve = ax2.plot(
+            lambda x: np.sqrt(x),
+            x_range=[0.01, plotlim/2],
+            use_smoothing=True,
+            color=UNISWAP_ORANGE
+        )
+
+        value_hodl_curve  = ax2.plot(
+            lambda x: (1+x)/2,
+            x_range=[0.01, plotlim/2],
+            use_smoothing=True,
+            color=UNISWAP_BLUE
+        )
+
+        value_0_constant = ax2.plot(
+            lambda x: 0,
+            x_range=[0.01, plotlim/2],
+            use_smoothing=True,
+            color=WHITE
+        )
+
+        value_impermanent_loss = ax2.plot(
+            lambda x: 2*np.sqrt(x)/(1+x)-1,
+            x_range=[0.01, plotlim/2],
+            use_smoothing=True,
+            color=WHITE
+        )
+
+        area = ax2.get_area(value_lp_curve, [0.01, 2.5], bounded_graph=value_hodl_curve, color=RED, opacity=1)
+        impermanent_loss_area = ax2.get_area(
+            value_impermanent_loss,
+            [0.01, 2.5],
+            bounded_graph=value_0_constant,
+            color=RED,
+            opacity=1
+        )
+
+        self.play(
+            Write(ax2),
+            Write(alpha_label),
+            Write(value_label)
+        )
+
+        self.play(lp_value_final.animate.set_color(UNISWAP_ORANGE))
+        self.play(ApplyWave(lp_value_final))
+        self.play(Create(value_lp_curve))
+
+        self.play(value_hodl_0.animate.set_color(UNISWAP_BLUE))
+        self.play(ApplyWave(value_hodl_0))
+        self.play(Create(value_hodl_curve))
+
+        self.play(Write(area), Unwrite(value_lp_curve), Unwrite(value_hodl_curve))
+        self.wait()
+
+        new_ax_group = VGroup(ax2, alpha_label, value_label, area)
+
+        old_ax_group = VGroup(ax, curve, equation)
+        self.play(FadeOut(old_ax_group), new_ax_group.animate.shift(LEFT*6.25+DOWN*0.25).scale(0.75))
 
         # +------------------+
         # | IMPERMANENT LOSS |
         # +------------------+
+        il_0 = MathTex("IL(\\alpha) := \\frac{V_{LP} - V_{HODL}}{V_{HODL}}", color=UNISWAP_PINK).scale(0.75).shift(UP*2.25+RIGHT*3.5)
+        il_1 = MathTex("= \\frac{V_{LP}}{V_{HODL}}-1").scale(0.75)
+        il_2 = MathTex("= \\frac{V_0 \\sqrt{\\alpha}}{L\\sqrt{P}(1+\\alpha)}-1").scale(0.75)
+        il_3 = MathTex("= \\frac{2L\\sqrt{P}\\sqrt{\\alpha}}{L\\sqrt{P}(1+\\alpha)} - 1").scale(0.75)
+        il_4 = MathTex("= \\frac{2\\sqrt{\\alpha}}{1+\\alpha} - 1").scale(0.75)
+
+        il_final = MathTex("IL(\\alpha) := \\frac{2\\sqrt{\\alpha}}{1+\\alpha} - 1", color=UNISWAP_PINK).scale(0.75).move_to(il_0)
+
+        il_vgroup = VGroup(il_1, il_2, il_3, il_4).arrange(DOWN, aligned_edge=LEFT).move_to(il_0).shift(RIGHT*0.75+DOWN*3)
+
+        self.play(Write(il_0))
+        self.play(TransformFromCopy(il_0, il_1))
+        self.play(TransformFromCopy(il_1, il_2))
+        self.play(TransformFromCopy(il_2, il_3))
+        self.play(TransformFromCopy(il_3, il_4))
+
+        self.play(
+            FadeOut(il_0),
+            FadeOut(il_1),
+            FadeOut(il_2),
+            FadeOut(il_3),
+            Transform(il_4, il_final),
+        )
+
+        self.play(Circumscribe(il_final, color=RED_C), il_final.animate.set_color(RED_C))
+
+        self.play(lp_value_final.animate.set_color(WHITE), value_hodl_0.animate.set_color(WHITE))
 
         self.wait(2)
